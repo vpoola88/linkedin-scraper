@@ -5,13 +5,10 @@ module Linkedin
 
     USER_AGENTS = ["Windows IE 6", "Windows IE 7", "Windows Mozilla", "Mac Safari", "Mac FireFox", "Mac Mozilla", "Linux Mozilla", "Linux Firefox", "Linux Konqueror"]
 
-
-    attr_accessor :country, :companies, :current_companies, :education, :first_name, :groups, :industry, :last_name, :linkedin_url, :location, :page, :past_companies, :picture, :recommended_visitors, :skills, :title, :websites, :organizations, :summary, :certifications, :languages, :publications
-
-    
-
+    attr_accessor :awards, :country, :companies, :current_companies, :education, :first_name, :groups, :industry, :last_name, :linkedin_url, :location, :page, :past_companies, :picture, :recommended_visitors, :skills, :title, :websites, :organizations, :summary, :certifications, :languages, :publications
 
     def initialize(page,url)
+      @awards               = get_awards(page)
       @first_name           = get_first_name(page)
       @last_name            = get_last_name(page)
       @title                = get_title(page)
@@ -116,9 +113,23 @@ module Linkedin
       return page.at("#profile-picture/img.photo").attributes['src'].value.strip if page.search("#profile-picture/img.photo").first
     end
 
-
     # Gets all the companies someone has worked for.
     # Also includes time period and location hashes.
+    # 
+    # Each company is is a hash of:
+    #   company
+    #   company_url
+    #   linkedin_company_url
+    #   type      
+    #   company_size
+    #   title
+    #   website     # FIXME: website, url,  and company_url are redundant?
+    #   url
+    #   industry
+    #   address
+    #   description
+    #   duration
+    #   location
     def get_all_companies(page)
       companies = []
 
@@ -133,9 +144,9 @@ module Linkedin
           duration = company.at(".period").content.slice(/\(.*\)/).slice(1..-2) if company.at(".period")
           location = company.at(".location").content.strip if company.at(".location")
           title = company.at("h3").text.gsub(/\s+|\n/, " ").strip if company.at("h3")
-          company = company.at("h4").text.gsub(/\s+|\n/, " ").strip if company.at("h4")
+          company_name = company.at("h4").text.gsub(/\s+|\n/, " ").strip if company.at("h4")
           description = company.at(".description.current-position").text.gsub(/\s+|\n/, " ").strip if company.at(".description.current-position")
-          company = {:company=>company,:title=>title, :company_url=>url,
+          company = {:company=>company_name,:title=>title, :company_url=>url,
                       :description=>description, :duration=>duration, 
                       :location=>location}
           companies << company.merge(result)
@@ -153,15 +164,16 @@ module Linkedin
           duration = company.at(".period").content.slice(/\(.*\)/).slice(1..-2) if company.at(".period")
           location = company.at(".location").content.strip if company.at(".location")
           title = company.at("h3").text.gsub(/\s+|\n/, " ").strip if company.at("h3")
-          company = company.at("h4").text.gsub(/\s+|\n/, " ").strip if company.at("h4")
+          company_name = company.at("h4").text.gsub(/\s+|\n/, " ").strip if company.at("h4")
           description = company.at(".description.past-position").text.gsub(/\s+|\n/, " ").strip if company.at(".description.past-position")
-          company = {:company=>company,:title=> title,:company_website=>url,
+          company = {:company=>company_name,:title=> title,:company_website=>url,
                       :description=>description, :duration=>duration,
                       :location=>location}
           companies << company.merge(result)
         end
         return companies
       end
+      return companies if companies.size > 0
     end
 
     def get_past_companies page
@@ -307,25 +319,23 @@ module Linkedin
       end
     end
     
+
     # ???: Should we truncate pub descriptions?
     # ???: How to handle pub dates that are only years?
-    # ???: How to handle special characters in URLs?
+    # FIXME: need to translate escaped characters back to symbols in URL
     def get_publications(page)
       publications= []
-      # search string to use with Nokogiri
       query = 'ul.publications li.publication'
       months = 'January|February|March|April|May|June|July|August|September|November|December'
       regex = /(#{months}) (\d{4})/
 
       # if the profile contains cert data
       if page.search(query).first
-        # loop over each element with cert data
         page.search(query).each do |item|
           title = item.search('h3 a cite').text
           description = item.at('div p').content.gsub(/\s+|\n/, " ").strip if item.at('div p')
           url = item.at('h3 a').attr('href').slice(/http.*/) if item.at('h3 a')
           authors = item.at('div').content.gsub(/\s+|\n/, " ").strip if item.at('div')
-
           p = item.search('ul li')
           publication = p[0].content.strip # publication/journal/publisher
           p_date = p[1].content.strip
@@ -334,7 +344,6 @@ module Linkedin
 
           publications << { title:title, publication:publication, url:url, publication_date:publication_date,  authors:authors, description:description }
         end
-
         return publications
       end
     end

@@ -55,11 +55,11 @@ describe Linkedin::Profile do
     end
 
     it 'returns the publication name' do
-      expect(@profile.publications.first[:name]).to eq "Complete chloroplast genome sequences of Solanum bulbocastanum, Solanum lycopersicum and comparative analyses with other Solanaceae genomes"
+      expect(@profile.publications.first[:title]).to eq "Complete chloroplast genome sequences of Solanum bulbocastanum, Solanum lycopersicum and comparative analyses with other Solanaceae genomes"
     end
 
-    it 'returns the publication start_date' do
-      expect(@profile.certifications.first[:start_date]).to eq Date.parse('May 2006')
+    it 'returns the publication publication_date' do
+      expect(@profile.publications.first[:publication_date]).to eq Date.parse('May 2006')
     end
   end
 
