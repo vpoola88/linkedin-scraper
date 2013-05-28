@@ -47,6 +47,21 @@ describe Linkedin::Profile do
       expect(@profile.certifications.first[:start_date]).to eq Date.parse('December 2010')
     end
   end
+  
+  describe ".publications" do
+    it 'returns an array of publication hashes' do
+      expect(@profile.publications.class).to eq Array
+      expect(@profile.publications.count).to eq 2
+    end
+
+    it 'returns the publication name' do
+      expect(@profile.publications.first[:title]).to eq "Complete chloroplast genome sequences of Solanum bulbocastanum, Solanum lycopersicum and comparative analyses with other Solanaceae genomes"
+    end
+
+    it 'returns the publication publication_date' do
+      expect(@profile.publications.first[:publication_date]).to eq Date.parse('May 2006')
+    end
+  end
 
   describe ".organizations" do
     it 'returns an array of organization hashes for the profile' do

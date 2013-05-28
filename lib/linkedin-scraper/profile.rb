@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
+require 'pry'
 module Linkedin
   class Profile
 
     USER_AGENTS = ["Windows IE 6", "Windows IE 7", "Windows Mozilla", "Mac Safari", "Mac FireFox", "Mac Mozilla", "Linux Mozilla", "Linux Firefox", "Linux Konqueror"]
 
-
-    attr_accessor :country, :current_companies, :education, :first_name, :groups, :industry, :last_name, :linkedin_url, :location, :page, :past_companies, :picture, :recommended_visitors, :skills, :title, :websites, :organizations, :summary, :certifications, :languages
-
+    attr_accessor :country, :current_companies, :education, :first_name, :groups, :industry, :last_name, :linkedin_url, :location, :page, :past_companies, :picture, :recommended_visitors, :skills, :title, :websites, :organizations, :summary, :certifications, :languages, :publications
 
     def initialize(page,url)
       @first_name           = get_first_name(page)
@@ -26,6 +25,7 @@ module Linkedin
       @groups               = get_groups(page)
       @organizations        = get_organizations(page)
       @certifications       = get_certifications(page)
+      @publications         = get_publications(page)
       @organizations        = get_organizations(page)
       @skills               = get_skills(page)
       @languages            = get_languages(page)
@@ -72,6 +72,7 @@ module Linkedin
         end
         result[:address] = page.at(".vcard.hq").at(".adr").text.gsub("\n"," ").strip if page.at(".vcard.hq")
       end
+
       result
     end
 
@@ -250,6 +251,34 @@ module Linkedin
           certifications << { name:name, authority:authority, license:license, start_date:start_date, end_date:end_date }
         end
         return certifications
+      end
+    end
+    
+    def get_publications(page)
+      publications= []
+      query = 'ul.publications li.publication'
+      months = 'January|February|March|April|May|June|July|August|September|November|December'
+      regex = /(#{months}) (\d{4})/
+
+      # if the profile contains cert data
+      if page.search(query).first
+        page.search(query).each do |item|
+          title = item.search('h3 a cite').text
+          description = item.at('div p').content.gsub(/\s+|\n/, " ").strip if item.at('div p')
+          url = item.at('h3 a').attr('href').slice(/http.*/) if item.at('h3 a')
+          url = URI.decode(url)
+          url = url.split(/&urlhash=*/).first #remove "&urlhash=*" from end of URL
+          authors = item.at('div').content.gsub(/\s+|\n/, " ").strip if item.at('div')
+          p = item.search('ul li')
+          publication = p[0].content.strip # publication/journal/publisher
+          p_date = p[1].content.strip
+          publication_date = Date.parse(p_date) if p_date.size > 4
+          publication_date = publication_date || Date.parse("#{p_date}-01-01")
+
+          publications << { title:title, publication:publication, url:url, publication_date:publication_date,  authors:authors, description:description }
+          binding.pry
+        end
+        return publications
       end
     end
 
