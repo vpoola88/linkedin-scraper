@@ -1,11 +1,13 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 
+require 'pry'
+
 module Linkedin
   class Profile
 
     USER_AGENTS = ["Windows IE 6", "Windows IE 7", "Windows Mozilla", "Mac Safari", "Mac FireFox", "Mac Mozilla", "Linux Mozilla", "Linux Firefox", "Linux Konqueror"]
 
 
-    attr_accessor :country, :current_companies, :education, :first_name, :groups, :industry, :last_name, :linkedin_url, :location, :page, :past_companies, :picture, :recommended_visitors, :skills, :title, :websites, :organizations, :summary, :certifications, :languages
+    attr_accessor :country, :coursework, :current_companies, :education, :first_name, :groups, :industry, :last_name, :linkedin_url, :location, :page, :past_companies, :picture, :recommended_visitors, :skills, :title, :websites, :organizations, :summary, :certifications, :languages
 
 
     def initialize(page,url)
@@ -26,6 +28,7 @@ module Linkedin
       @groups               = get_groups(page)
       @organizations        = get_organizations(page)
       @certifications       = get_certifications(page)
+      @coursework           = get_coursework(page)
       @organizations        = get_organizations(page)
       @skills               = get_skills(page)
       @languages            = get_languages(page)
@@ -253,6 +256,26 @@ module Linkedin
       end
     end
 
+    def get_coursework(page)
+      coursework = []
+      query = 'ul li.competency'
+
+binding.pry
+      
+      if page.search(query).first
+        page.search(query).each do |course|
+          
+
+          
+          grade = nil #Course do not have grades on linkedin
+          number = course.at(query).content.slice(/(\d+)/)
+          name = course.at(query).text.gsub(/\s+|\n/, " ").split( "(#{number})")[0].strip
+          
+      
+          coursework << { grade:grade, name:name, number:number }
+        end
+      end
+    end
 
     def get_organizations(page)
       organizations = []

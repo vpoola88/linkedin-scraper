@@ -32,7 +32,13 @@ describe Linkedin::Profile do
       expect(@profile.name).to eq "Justin Grevich"
     end
   end
-
+  
+  describe ".coursework" do
+    it 'returns an array' do
+      expct(@profile.course).to eq nil
+    end
+  end
+  
   describe ".certifications" do
     it 'returns an array of certification hashes' do
       expect(@profile.certifications.class).to eq Array
