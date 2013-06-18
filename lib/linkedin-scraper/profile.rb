@@ -5,10 +5,9 @@ module Linkedin
 
     USER_AGENTS = ["Windows IE 6", "Windows IE 7", "Windows Mozilla", "Mac Safari", "Mac FireFox", "Mac Mozilla", "Linux Mozilla", "Linux Firefox", "Linux Konqueror"]
 
-    attr_accessor :awards, :country, :companies, :current_companies, :education, :first_name, :groups, :industry, :last_name, :linkedin_url, :location, :page, :past_companies, :picture, :recommended_visitors, :skills, :title, :websites, :organizations, :summary, :certifications, :languages, :publications
+    attr_accessor :country, :current_companies, :education, :first_name, :groups, :industry, :last_name, :linkedin_url, :location, :page, :past_companies, :picture, :recommended_visitors, :skills, :title, :websites, :organizations, :summary, :certifications, :languages, :publications
 
     def initialize(page,url)
-      @awards               = get_awards(page)
       @first_name           = get_first_name(page)
       @last_name            = get_last_name(page)
       @title                = get_title(page)
@@ -19,7 +18,6 @@ module Linkedin
       @summary              = get_summary(page)
       @current_companies    = get_current_companies(page)
       @past_companies       = get_past_companies(page)
-      @companies            = get_all_companies(page)
       @recommended_visitors = get_recommended_visitors(page)
       @education            = get_education(page)
       @linkedin_url         = url
@@ -111,69 +109,6 @@ module Linkedin
 
     def get_picture page
       return page.at("#profile-picture/img.photo").attributes['src'].value.strip if page.search("#profile-picture/img.photo").first
-    end
-
-    # Gets all the companies someone has worked for.
-    # Also includes time period and location hashes.
-    # 
-    # Each company is is a hash of:
-    #   company
-    #   company_url
-    #   linkedin_company_url
-    #   type      
-    #   company_size
-    #   title
-    #   website     # FIXME: website, url,  and company_url are redundant?
-    #   url
-    #   industry
-    #   address
-    #   description
-    #   duration
-    #   location
-    def get_all_companies(page)
-      companies = []
-
-      if page.search(".position.experience.vevent.vcard.summary-current").first
-        page.search(".position.experience.vevent.vcard.summary-current").each do |company|
-          result = get_company_url company
-          url = result[:url]
-          # FIXME: How do you want dates for current employment?
-          # start date as a Date, end date as what?
-          start_date = "Something"
-          end_date = "Present"
-          duration = company.at(".period").content.slice(/\(.*\)/).slice(1..-2) if company.at(".period")
-          location = company.at(".location").content.strip if company.at(".location")
-          title = company.at("h3").text.gsub(/\s+|\n/, " ").strip if company.at("h3")
-          company_name = company.at("h4").text.gsub(/\s+|\n/, " ").strip if company.at("h4")
-          description = company.at(".description.current-position").text.gsub(/\s+|\n/, " ").strip if company.at(".description.current-position")
-          company = {:company=>company_name,:title=>title, :company_url=>url,
-                      :description=>description, :duration=>duration, 
-                      :location=>location}
-          companies << company.merge(result)
-        end
-      end
-
-      if page.search(".position.experience.vevent.vcard.summary-past").first
-        page.search(".position.experience.vevent.vcard.summary-past").each do |company|
-          result = get_company_url company
-          url = result[:url]
-          # FIXME: How do you want dates for current employment?
-          # start date as a Date, end date as what?
-          start_date = "something"
-          end_date = "something"
-          duration = company.at(".period").content.slice(/\(.*\)/).slice(1..-2) if company.at(".period")
-          location = company.at(".location").content.strip if company.at(".location")
-          title = company.at("h3").text.gsub(/\s+|\n/, " ").strip if company.at("h3")
-          company_name = company.at("h4").text.gsub(/\s+|\n/, " ").strip if company.at("h4")
-          description = company.at(".description.past-position").text.gsub(/\s+|\n/, " ").strip if company.at(".description.past-position")
-          company = {:company=>company_name,:title=> title,:company_website=>url,
-                      :description=>description, :duration=>duration,
-                      :location=>location}
-          companies << company.merge(result)
-        end
-        return companies
-      end
-      return companies if companies.size > 0
     end
 
     def get_past_companies page
@@ -319,10 +254,6 @@ module Linkedin
       end
     end
     
-
-    # ???: Should we truncate pub descriptions?
-    # ???: How to handle pub dates that are only years?
-    # FIXME: need to translate escaped characters back to symbols in URL
     def get_publications(page)
       publications= []
       query = 'ul.publications li.publication'
@@ -335,14 +266,17 @@ module Linkedin
           title = item.search('h3 a cite').text
           description = item.at('div p').content.gsub(/\s+|\n/, " ").strip if item.at('div p')
           url = item.at('h3 a').attr('href').slice(/http.*/) if item.at('h3 a')
+          url = URI.decode(url)
+          url = url.split(/&urlhash=*/).first #remove "&urlhash=*" from end of URL
           authors = item.at('div').content.gsub(/\s+|\n/, " ").strip if item.at('div')
           p = item.search('ul li')
           publication = p[0].content.strip # publication/journal/publisher
           p_date = p[1].content.strip
           publication_date = Date.parse(p_date) if p_date.size > 4
-          publication_date = publication_date || p_date
+          publication_date = publication_date || Date.parse("#{p_date}-01-01")
 
           publications << { title:title, publication:publication, url:url, publication_date:publication_date,  authors:authors, description:description }
+          binding.pry
         end
         return publications
       end
