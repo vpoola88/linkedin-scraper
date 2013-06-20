@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-require 'pry'
 module Linkedin
   class Profile
 
@@ -276,7 +275,6 @@ module Linkedin
           publication_date = publication_date || Date.parse("#{p_date}-01-01")
 
           publications << { title:title, publication:publication, url:url, publication_date:publication_date,  authors:authors, description:description }
-          binding.pry
         end
         return publications
       end
